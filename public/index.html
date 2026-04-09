@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panic Push: Cosmic Arena</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="menuScreen" class="screen menu-screen">
+        <div class="hero-panel">
+          <img class="hero-logo" src="/assets/branding/logo-hero-v1.png" alt="Panic Push: Cosmic Arena">
+          <h1 class="sr-only">Panic Push: Cosmic Arena</h1>
+          <p>Dash, blast, and shove rivals off a shrinking space platform.</p>
+          <div class="menu-actions">
+            <input id="nicknameInput" maxlength="18" placeholder="Nickname">
+            <button id="createRoomButton" type="button">Create Room</button>
+          </div>
+        </div>
+        <div class="menu-grid">
+          <article class="panel">
+            <h2>Join by Code</h2>
+            <p>Got a room code from a friend?</p>
+            <div class="inline-form">
+              <input id="roomCodeInput" maxlength="5" placeholder="ABCDE">
+              <button id="joinRoomButton" type="button">Join</button>
+            </div>
+          </article>
+          <article class="panel">
+            <h2>How to Play</h2>
+            <ul class="how-list">
+              <li>Move with WASD or arrow keys.</li>
+              <li>Dash with Space.</li>
+              <li>Push blast with left click, J, or K.</li>
+              <li>Stay inside the safe arena and be the last alive.</li>
+            </ul>
+          </article>
+        </div>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Open Rooms</p>
+              <h2>Players Waiting</h2>
+            </div>
+            <button id="refreshRoomListButton" type="button">Refresh</button>
+          </div>
+          <div id="openRoomList" class="room-list"></div>
+        </section>
+      </section>
+      <section id="lobbyScreen" class="screen lobby-screen" hidden>
+        <div class="panel lobby-panel">
+          <div class="lobby-code">
+            <p class="eyebrow">Room Code</p>
+            <strong id="lobbyRoomCode">-----</strong>
+            <button id="copyRoomCodeButton" type="button">Copy Code</button>
+          </div>
+          <div>
+            <h2>Lobby</h2>
+            <p id="lobbyStatus">Waiting for players.</p>
+          </div>
+          <ul id="playerList" class="player-list"></ul>
+          <div class="lobby-controls">
+            <button id="readyButton" type="button">Ready</button>
+            <button id="startMatchButton" type="button">Start Match</button>
+            <button id="addBotButton" type="button">Add Bot</button>
+            <button id="removeBotButton" type="button">Remove Bot</button>
+            <button id="fillBotsButton" type="button">Fill Bots</button>
+            <button id="leaveRoomButton" type="button" class="danger-button">Leave Room</button>
+          </div>
+        </div>
+      </section>
+      <section id="gameScreen" class="game-screen" hidden>
+        <div class="game-hud">
+          <span>Time <strong id="matchTimerText">0:00</strong></span>
+          <span>Alive <strong id="aliveCountText">0</strong></span>
+          <span>Dash <strong id="dashCooldownText">Ready</strong></span>
+          <span>Push <strong id="pushCooldownText">Ready</strong></span>
+          <span>Status <strong id="statusHintText">Fight</strong></span>
+        </div>
+        <div class="game-frame">
+          <div id="phaserGame" class="phaser-game"></div>
+        </div>
+      </section>
+      <section id="endScreen" class="screen end-screen" hidden>
+        <div class="panel end-panel">
+          <p class="eyebrow">Round Over</p>
+          <h2 id="winnerText">Winner</h2>
+          <ol id="standingsList" class="standings-list"></ol>
+          <div class="end-actions">
+            <button id="returnLobbyButton" type="button">Return to Lobby</button>
+          </div>
+        </div>
+      </section>
+      <p id="statusText" class="sr-only" aria-live="polite"></p>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/vendor/phaser/phaser.min.js"></script>
+    <script src="/src/audio.js"></script>
+    <script src="/src/ui.js"></script>
+    <script src="/src/game.js"></script>
+    <script src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "panic-push-cosmic-arena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Panic Push: Cosmic Arena multiplayer Phaser game.",
+  "main": "server/index.js",
+  "scripts": {
+    "generate:audio": "node scripts/generate-openai-audio-assets.mjs",
+    "pixelengine:animate": "node scripts/pixelengine-animate.mjs",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "phaser": "^3.90.0",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
