@@ -8,7 +8,9 @@
     pendingSnapshot: null,
     input: { up: false, down: false, left: false, right: false },
     openRooms: [],
-    winnerPlayed: false
+    winnerPlayed: false,
+    copyFeedbackTimeout: null,
+    copyButtonTimeout: null
   };
 
   const el = (id) => document.querySelector(`#${id}`);
@@ -24,6 +26,17 @@
     openRooms: el("openRoomList"),
     refresh: el("refreshRoomListButton"),
     lobbyCode: el("lobbyRoomCode"),
+    lobbyPlayerCount: el("lobbyPlayerCount"),
+    lobbyHostStatus: el("lobbyHostStatus"),
+    lobbyStatus: el("lobbyStatus"),
+    lobbyStartHint: el("lobbyStartHint"),
+    rosterCount: el("rosterCountBadge"),
+    rosterStatus: el("rosterStatusText"),
+    personalStatus: el("personalStatusText"),
+    hostControlsPanel: el("hostControlsPanel"),
+    hostControlsHint: el("hostControlsHint"),
+    hostControlsMeta: el("hostControlsMeta"),
+    copyFeedback: el("copyRoomFeedback"),
     copyCode: el("copyRoomCodeButton"),
     players: el("playerList"),
     ready: el("readyButton"),
@@ -42,7 +55,10 @@
     returnLobby: el("returnLobbyButton")
   };
 
-  socket.on("connect", () => setStatus("Connected."));
+  socket.on("connect", () => {
+    setStatus("Connected.");
+    socket.emit("room:list:request");
+  });
   socket.on("disconnect", () => {
     if (window.PanicAudio) {
       window.PanicAudio.play("music-stop");
@@ -97,7 +113,23 @@
   ui.create.addEventListener("click", () => join("room:create", { nickname: nickname() }));
   ui.join.addEventListener("click", () => join("room:join", { nickname: nickname(), code: ui.roomCode.value }));
   ui.refresh.addEventListener("click", () => socket.emit("room:list:request"));
-  ui.copyCode.addEventListener("click", () => navigator.clipboard && state.room && navigator.clipboard.writeText(state.room.code));
+  ui.openRooms.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-action='create-room']");
+    if (trigger) ui.create.click();
+  });
+  ui.copyCode.addEventListener("click", async () => {
+    if (!state.room) return;
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(state.room.code);
+        showCopyFeedback("Room code copied.", true);
+        return;
+      } catch {
+        // Fall through to inline fallback text below.
+      }
+    }
+    showCopyFeedback("Copy failed. Select the code manually.", false);
+  });
   ui.ready.addEventListener("click", () => {
     const self = state.room && state.room.players.find((player) => player.id === state.playerId);
     socket.emit("player:ready", { ready: !(self && self.ready) });
@@ -168,33 +200,143 @@
   function renderLobby() {
     if (!state.room) return;
     const isHost = state.room.hostId === state.playerId;
+    const self = state.room.players.find((player) => player.id === state.playerId);
+    const hostPlayer = state.room.players.find((player) => player.id === state.room.hostId);
     const humans = state.room.players.filter((player) => !player.isBot && player.connected !== false);
     const roomReadyToStart = state.room.players.length >= state.room.minPlayers && humans.every((player) => player.ready);
+    const startReason = getStartReason(state.room, humans);
+    const participantLabel = `${state.room.players.length}/${state.room.maxPlayers}`;
+    const missingParticipants = Math.max(0, state.room.minPlayers - state.room.players.length);
     ui.lobbyCode.textContent = state.room.code;
+    ui.lobbyPlayerCount.textContent = participantLabel;
+    ui.rosterCount.textContent = `${participantLabel} players`;
+    ui.lobbyHostStatus.textContent = hostPlayer ? (isHost ? "You" : formatPlayerName(hostPlayer.nickname)) : "-";
+    ui.ready.textContent = self && self.ready ? "Unready" : "Ready";
     ui.start.disabled = !isHost || !roomReadyToStart;
     ui.addBot.disabled = !isHost || state.room.players.length >= state.room.maxPlayers;
     ui.removeBot.disabled = !isHost || !state.room.players.some((player) => player.isBot);
     ui.fillBots.disabled = !isHost || state.room.players.length >= state.room.maxPlayers;
+    ui.start.title = isHost ? startReason : "Only the host can start the match.";
+    ui.addBot.title = !isHost ? "Only the host can add bots." : state.room.players.length >= state.room.maxPlayers ? "Room is full." : "Add a bot to the room.";
+    ui.removeBot.title = !isHost ? "Only the host can remove bots." : !state.room.players.some((player) => player.isBot) ? "No bots to remove." : "Remove one bot from the room.";
+    ui.fillBots.title = !isHost ? "Only the host can fill bots." : state.room.players.length >= state.room.maxPlayers ? "Room is already full." : "Fill all open slots with bots.";
+    ui.hostControlsPanel.hidden = !isHost;
+    ui.lobbyStartHint.textContent = startReason;
+    ui.hostControlsHint.textContent = getHostStartLabel(isHost, roomReadyToStart, startReason);
+    ui.hostControlsMeta.textContent = getHostControlsMeta(isHost, state.room);
+    ui.personalStatus.textContent = self && self.ready
+      ? "You are ready."
+      : "Mark ready when set.";
+    if (isHost) {
+      ui.lobbyStatus.textContent = roomReadyToStart
+        ? "Room ready. Launch when you want."
+        : "Waiting on ready checks and open slots.";
+    } else {
+      ui.lobbyStatus.textContent = self && self.ready
+        ? "Waiting for host launch."
+        : "Ready up so the host can start.";
+    }
+    const rosterLead = roomReadyToStart
+      ? "Ready to launch"
+      : missingParticipants > 0
+        ? "Waiting for players"
+        : "Ready check";
+    const rosterTail = missingParticipants > 0
+      ? `Need ${missingParticipants} more to start`
+      : humans.every((player) => player.ready)
+        ? "All humans ready"
+        : "Waiting on human ready";
+    ui.rosterStatus.innerHTML = `
+      <span class="status-chip status-chip-live">${rosterLead}</span>
+      <span class="status-chip status-chip-neutral">${participantLabel} joined</span>
+      <span class="status-chip ${roomReadyToStart ? "status-chip-success" : "status-chip-warning"}">${rosterTail}</span>
+    `;
     ui.players.innerHTML = "";
     for (const player of state.room.players) {
       const item = document.createElement("li");
-      item.innerHTML = `<strong style="color:${uiHelpers.colorToCss(player.color)}">${escapeHtml(player.nickname)}${player.isBot ? " (bot)" : ""}${player.id === state.playerId ? " (you)" : ""}</strong><span class="ready-pill ${player.ready ? "ready" : ""}">${player.ready ? "Ready" : "Not Ready"}</span>`;
+      item.className = `player-slot-card${player.isBot ? " player-slot-bot" : " player-slot-human"}${player.ready ? " player-slot-ready" : " player-slot-waiting"}`;
+      const tags = [];
+      if (player.id === state.room.hostId) tags.push(`<span class="player-tag player-tag-host"><span class="tag-icon tag-icon-host" aria-hidden="true"></span>Host</span>`);
+      if (player.isBot) tags.push(`<span class="player-tag player-tag-bot"><span class="tag-icon tag-icon-bot" aria-hidden="true"></span>Bot</span>`);
+      if (player.id === state.playerId) tags.push(`<span class="player-tag player-tag-you"><span class="tag-icon tag-icon-you" aria-hidden="true"></span>You</span>`);
+      const avatarClass = player.isBot ? "player-avatar-shell player-avatar-shell-bot" : "player-avatar-shell";
+      const avatarGlyphClass = player.isBot ? "slot-glyph slot-glyph-bot" : "slot-glyph slot-glyph-player";
+      const displayName = formatPlayerName(player.nickname);
+      item.innerHTML = `
+        <div class="player-slot-main">
+          <div class="${avatarClass}" style="--player-accent:${uiHelpers.colorToCss(player.color)}">
+            <div class="player-avatar-dot"></div>
+            <span class="${avatarGlyphClass}" aria-hidden="true"></span>
+          </div>
+          <div class="player-name-stack">
+            <strong style="color:${uiHelpers.colorToCss(player.color)}">${escapeHtml(displayName)}</strong>
+            <div class="player-tags">${tags.join("")}</div>
+          </div>
+          <span class="ready-pill ${player.ready ? "ready" : "not-ready"}${player.isBot ? " ready-pill-bot" : ""}"><span class="ready-pill-dot" aria-hidden="true"></span>${player.ready ? "Ready" : "Not Ready"}</span>
+        </div>
+      `;
       ui.players.append(item);
+    }
+    const emptySlots = Math.max(0, state.room.maxPlayers - state.room.players.length);
+    for (let index = 0; index < emptySlots; index += 1) {
+      const slot = document.createElement("li");
+      slot.className = "player-slot-card empty-slot-card";
+      slot.innerHTML = `
+        <div class="player-slot-main">
+          <div class="player-avatar-shell player-avatar-shell-empty">
+            <div class="player-avatar-dot player-avatar-empty"></div>
+            <span class="slot-glyph slot-glyph-empty" aria-hidden="true"></span>
+          </div>
+          <div class="player-name-stack">
+            <strong>Open Slot ${state.room.players.length + index + 1}</strong>
+            <p class="empty-slot-copy">Invite a friend or add a bot to fill this spot.</p>
+          </div>
+          <span class="ready-pill waiting"><span class="ready-pill-dot" aria-hidden="true"></span>Open</span>
+        </div>
+      `;
+      ui.players.append(slot);
     }
   }
 
   function renderOpenRooms() {
     ui.openRooms.innerHTML = "";
     if (!state.openRooms.length) {
-      ui.openRooms.textContent = "No open rooms yet. Create a room, add bots, and start a quick test match.";
+      ui.openRooms.innerHTML = `
+        <article class="room-list-empty">
+          <div class="empty-rooms-visual">
+            <img class="empty-rooms-art" src="/assets/ui/icons/lobby-empty-beacon-v1.png" alt="" aria-hidden="true">
+          </div>
+          <div class="empty-state-copy">
+            <strong class="empty-state-title">No public rooms yet</strong>
+            <p>Create the first room or check back in a moment.</p>
+          </div>
+          <div class="empty-state-actions">
+            <button type="button" data-action="create-room">Create First Room</button>
+            <span class="empty-state-hint">New rooms appear here automatically.</span>
+          </div>
+        </article>
+      `;
       return;
     }
     for (const room of state.openRooms) {
       const card = document.createElement("article");
       card.className = "open-room-card";
-      card.innerHTML = `<div><strong>${escapeHtml(room.host)}'s room</strong><span>${room.players}/${room.maxPlayers} players - ${room.bots} bots - ${room.code}</span></div>`;
+      card.innerHTML = `
+        <div class="room-card-main">
+          <div class="room-card-top">
+            <strong>${escapeHtml(room.host)}'s room</strong>
+            <span class="room-code-badge">${room.code}</span>
+          </div>
+          <p class="room-card-meta">Ready to join.</p>
+          <div class="room-chip-row">
+            <span class="room-chip">${room.players}/${room.maxPlayers} players</span>
+            <span class="room-chip">${room.bots} bots</span>
+          </div>
+        </div>
+      `;
       const button = document.createElement("button");
-      button.textContent = "Join";
+      button.className = "button-secondary";
+      button.textContent = "Join Room";
       button.addEventListener("click", () => join("room:join", { nickname: nickname(), code: room.code }));
       card.append(button);
       ui.openRooms.append(card);
@@ -235,6 +377,7 @@
     ui.lobby.hidden = screen !== "lobby";
     ui.game.hidden = screen !== "game";
     ui.end.hidden = screen !== "end";
+    if (screen === "menu") socket.emit("room:list:request");
     if (window.PanicAudio) {
       if (screen === "menu" || screen === "lobby" || screen === "end") {
         window.PanicAudio.play("lobby-music-start");
@@ -298,6 +441,13 @@
     state.pendingSnapshot = null;
     state.input = { up: false, down: false, left: false, right: false };
     state.winnerPlayed = false;
+    if (state.copyFeedbackTimeout) clearTimeout(state.copyFeedbackTimeout);
+    if (state.copyButtonTimeout) clearTimeout(state.copyButtonTimeout);
+    if (ui.copyFeedback) ui.copyFeedback.hidden = true;
+    if (ui.copyCode) {
+      ui.copyCode.textContent = "Copy Code";
+      ui.copyCode.classList.remove("copied");
+    }
   }
 
   function queueSnapshot(snapshot) {
@@ -327,6 +477,59 @@
   function setStatus(message) {
     const status = document.querySelector("#statusText");
     if (status) status.textContent = message;
+  }
+
+  function showCopyFeedback(message, success) {
+    if (!ui.copyFeedback) return;
+    ui.copyFeedback.textContent = message;
+    ui.copyFeedback.hidden = false;
+    if (ui.copyCode) {
+      ui.copyCode.textContent = success ? "Copied" : "Copy Code";
+      ui.copyCode.classList.toggle("copied", Boolean(success));
+    }
+    if (state.copyFeedbackTimeout) clearTimeout(state.copyFeedbackTimeout);
+    if (state.copyButtonTimeout) clearTimeout(state.copyButtonTimeout);
+    state.copyFeedbackTimeout = setTimeout(() => {
+      ui.copyFeedback.hidden = true;
+      state.copyFeedbackTimeout = null;
+    }, 1800);
+    state.copyButtonTimeout = setTimeout(() => {
+      if (ui.copyCode) {
+        ui.copyCode.textContent = "Copy Code";
+        ui.copyCode.classList.remove("copied");
+      }
+      state.copyButtonTimeout = null;
+    }, 1600);
+  }
+
+  function getStartReason(room, humans) {
+    if (room.players.length < room.minPlayers) {
+      return `Need at least ${room.minPlayers} participants to start.`;
+    }
+    if (!humans.every((player) => player.ready)) {
+      return "Waiting for all human players to ready up.";
+    }
+    return "All human players are ready.";
+  }
+
+  function getHostControlsMeta(isHost, room) {
+    if (!isHost) return "";
+    if (room.players.length >= room.maxPlayers) return "Room full. Bot controls locked.";
+    if (!room.players.some((player) => player.isBot)) return "No bots yet. Add one or fill all slots.";
+    return "Manage bots while slots remain open.";
+  }
+
+  function formatPlayerName(name) {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return "Pilot";
+    if (/^\d+$/.test(trimmed)) return `Pilot ${trimmed}`;
+    return trimmed;
+  }
+
+  function getHostStartLabel(isHost, roomReadyToStart, startReason) {
+    if (!isHost) return "Only the host can start the match.";
+    if (roomReadyToStart) return "Start Match is ready.";
+    return `Start locked. ${startReason}`;
   }
 
   function isMoveKey(key) {
@@ -360,5 +563,6 @@
     return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
   }
 
+  renderOpenRooms();
   show("menu");
 })();

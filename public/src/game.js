@@ -26,6 +26,7 @@
       this.lastCountdownCue = null;
       this.roundStartPlayed = false;
       this.fightTextUntil = 0;
+      this.lastShakeAt = 0;
     }
 
     create() {
@@ -354,6 +355,13 @@
       return null;
     }
 
+    triggerScreenShake(duration, intensity, cooldownMs = 140) {
+      const now = performance.now();
+      if (now - this.lastShakeAt < cooldownMs) return;
+      this.lastShakeAt = now;
+      this.cameras.main.shake(duration, intensity);
+    }
+
     drawEffects(effects) {
       this.effectLayer.clear();
       const activeIds = new Set();
@@ -361,14 +369,14 @@
         activeIds.add(effect.id);
         const alpha = Phaser.Math.Clamp(effect.life || 0, 0, 1);
         if (!this.seenEffects.has(effect.id) && effect.type === "impact") {
-          this.cameras.main.shake(110, 0.0045);
+          this.triggerScreenShake(55, 0.0018);
           if (window.PanicAudio) window.PanicAudio.play("push-impact");
           this.seenEffects.add(effect.id);
         } else if (!this.seenEffects.has(effect.id) && effect.type === "dash") {
           if (window.PanicAudio) window.PanicAudio.play("dash");
           this.seenEffects.add(effect.id);
         } else if (!this.seenEffects.has(effect.id) && effect.type === "elimination") {
-          this.cameras.main.shake(140, 0.006);
+          this.triggerScreenShake(85, 0.0026, 180);
           if (window.PanicAudio) window.PanicAudio.play("elimination");
           this.seenEffects.add(effect.id);
         } else if (!this.seenEffects.has(effect.id) && effect.type === "push") {

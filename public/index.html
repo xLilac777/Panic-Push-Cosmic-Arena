@@ -9,65 +9,152 @@
   <body>
     <main class="app-shell">
       <section id="menuScreen" class="screen menu-screen">
-        <div class="hero-panel">
-          <img class="hero-logo" src="/assets/branding/logo-hero-v1.png" alt="Panic Push: Cosmic Arena">
-          <h1 class="sr-only">Panic Push: Cosmic Arena</h1>
-          <p>Dash, blast, and shove rivals off a shrinking space platform.</p>
-          <div class="menu-actions">
-            <input id="nicknameInput" maxlength="18" placeholder="Nickname">
-            <button id="createRoomButton" type="button">Create Room</button>
+        <header class="panel top-header">
+          <div class="brand-lockup">
+            <div class="brand-copy">
+              <img class="brand-title-logo" src="/assets/branding/logo-clean-tight-v1.png" alt="Panic Push: Cosmic Arena">
+              <p class="brand-subtitle">Quick multiplayer rounds on a collapsing space platform.</p>
+            </div>
           </div>
-        </div>
-        <div class="menu-grid">
-          <article class="panel">
-            <h2>Join by Code</h2>
-            <p>Got a room code from a friend?</p>
-            <div class="inline-form">
-              <input id="roomCodeInput" maxlength="5" placeholder="ABCDE">
-              <button id="joinRoomButton" type="button">Join</button>
+          <div class="header-pills" aria-label="Lobby summary">
+            <span>Rooms update live</span>
+          </div>
+        </header>
+        <div class="menu-layout">
+          <section class="panel action-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Launch Match</p>
+                <h2>Jump into a match</h2>
+              </div>
+              <p class="panel-note">Set a nickname, create a room, or join by code.</p>
+            </div>
+            <label class="field-card nickname-field" for="nicknameInput">
+              <span class="field-label">Nickname</span>
+              <input id="nicknameInput" maxlength="18" placeholder="Nickname">
+            </label>
+            <div class="action-grid">
+              <article class="action-card action-card-primary">
+                <div class="action-copy">
+                  <p class="eyebrow">Primary</p>
+                  <h3>Create Room</h3>
+                  <p>Host a lobby and fill empty slots with bots when needed.</p>
+                </div>
+                <button id="createRoomButton" type="button">Create Room</button>
+              </article>
+              <article class="action-card action-card-secondary">
+                <div class="action-copy">
+                  <p class="eyebrow">Join</p>
+                  <h3>Join by Code</h3>
+                  <p>Got a room code? Enter it and jump straight in.</p>
+                </div>
+                <div class="inline-form join-form">
+                  <input id="roomCodeInput" maxlength="5" placeholder="ABCDE">
+                  <button id="joinRoomButton" type="button" class="button-secondary">Join Room</button>
+                </div>
+              </article>
+            </div>
+          </section>
+          <section class="panel rooms-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Open Rooms</p>
+                <h2>Public lobbies</h2>
+              </div>
+              <button id="refreshRoomListButton" type="button" class="button-secondary">Refresh</button>
+            </div>
+            <p class="panel-note">Join any available room or create the first one.</p>
+            <div id="openRoomList" class="room-list"></div>
+          </section>
+          <article class="panel support-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">How to Play</p>
+                <h2>Quick Rules</h2>
+              </div>
+            </div>
+            <div class="support-grid">
+              <div class="support-block">
+                <span class="support-label">Move</span>
+                <div class="control-row">
+                  <span class="control-chip">WASD</span>
+                  <span class="control-chip">Arrows</span>
+                </div>
+              </div>
+              <div class="support-block">
+                <span class="support-label">Act</span>
+                <div class="control-row">
+                  <span class="control-chip">Dash: Space</span>
+                  <span class="control-chip">Push: Click / J / K</span>
+                </div>
+              </div>
+              <p class="support-note">Stay on the platform and knock rivals into the shrink.</p>
             </div>
           </article>
-          <article class="panel">
-            <h2>How to Play</h2>
-            <ul class="how-list">
-              <li>Move with WASD or arrow keys.</li>
-              <li>Dash with Space.</li>
-              <li>Push blast with left click, J, or K.</li>
-              <li>Stay inside the safe arena and be the last alive.</li>
-            </ul>
-          </article>
         </div>
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Open Rooms</p>
-              <h2>Players Waiting</h2>
-            </div>
-            <button id="refreshRoomListButton" type="button">Refresh</button>
-          </div>
-          <div id="openRoomList" class="room-list"></div>
-        </section>
       </section>
       <section id="lobbyScreen" class="screen lobby-screen" hidden>
-        <div class="panel lobby-panel">
-          <div class="lobby-code">
-            <p class="eyebrow">Room Code</p>
-            <strong id="lobbyRoomCode">-----</strong>
-            <button id="copyRoomCodeButton" type="button">Copy Code</button>
-          </div>
-          <div>
-            <h2>Lobby</h2>
-            <p id="lobbyStatus">Waiting for players.</p>
-          </div>
-          <ul id="playerList" class="player-list"></ul>
-          <div class="lobby-controls">
-            <button id="readyButton" type="button">Ready</button>
-            <button id="startMatchButton" type="button">Start Match</button>
-            <button id="addBotButton" type="button">Add Bot</button>
-            <button id="removeBotButton" type="button">Remove Bot</button>
-            <button id="fillBotsButton" type="button">Fill Bots</button>
-            <button id="leaveRoomButton" type="button" class="danger-button">Leave Room</button>
-          </div>
+        <div class="lobby-layout">
+          <article class="panel lobby-card lobby-card-info">
+            <div class="lobby-room-head">
+              <div>
+                <p class="eyebrow">Room Code</p>
+                <div class="lobby-code-row">
+                  <strong id="lobbyRoomCode">-----</strong>
+                  <button id="copyRoomCodeButton" type="button" class="button-secondary">Copy Code</button>
+                </div>
+              </div>
+              <p id="copyRoomFeedback" class="copy-feedback" hidden>Room code copied.</p>
+            </div>
+            <div class="room-status-bar">
+              <span class="room-status-pill"><span class="status-indicator status-indicator-squad" aria-hidden="true"></span><strong id="lobbyPlayerCount">0/0</strong><span>joined</span></span>
+              <span class="room-status-pill room-status-pill-neutral"><span class="status-indicator status-indicator-beacon" aria-hidden="true"></span><span>Host</span><strong id="lobbyHostStatus">-</strong></span>
+            </div>
+            <div class="lobby-status-stack">
+              <p id="lobbyStatus" class="lobby-status">Waiting for players.</p>
+              <p id="lobbyStartHint" class="lobby-start-hint">Need at least 2 participants to start.</p>
+            </div>
+            <section class="lobby-action-section">
+              <div class="section-copy">
+                <p class="eyebrow">Your Status</p>
+                <h2>Ready Check</h2>
+                <p id="personalStatusText" class="panel-note">Mark yourself ready when you want the match to begin.</p>
+              </div>
+              <div class="personal-action-row">
+                <button id="readyButton" type="button">Ready</button>
+              </div>
+            </section>
+            <section id="hostControlsPanel" class="lobby-action-section host-controls-panel" hidden>
+              <div class="section-copy">
+                <p class="eyebrow">Host Controls</p>
+                <h2>Start the match</h2>
+                <p id="hostControlsHint" class="panel-note">Waiting for all human players to ready up.</p>
+              </div>
+              <div class="host-primary-row">
+                <button id="startMatchButton" type="button">Start Match</button>
+              </div>
+              <div class="host-secondary-row">
+                <button id="addBotButton" type="button" class="button-secondary">Add Bot</button>
+                <button id="removeBotButton" type="button" class="button-secondary">Remove Bot</button>
+                <button id="fillBotsButton" type="button" class="button-secondary">Fill Bots</button>
+              </div>
+              <p id="hostControlsMeta" class="control-helper-text">Bots can fill open slots until the room is full.</p>
+            </section>
+            <div class="lobby-leave-row">
+              <button id="leaveRoomButton" type="button" class="danger-button">Leave Room</button>
+            </div>
+          </article>
+          <article class="panel lobby-card lobby-card-roster">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Squad Roster</p>
+                <h2>Players in Room</h2>
+              </div>
+              <span id="rosterCountBadge" class="roster-count-badge">0/0 players</span>
+            </div>
+            <div id="rosterStatusText" class="roster-status-bar" aria-live="polite"></div>
+            <ul id="playerList" class="player-list player-roster-grid"></ul>
+          </article>
         </div>
       </section>
       <section id="gameScreen" class="game-screen" hidden>
