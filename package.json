@@ -5,6 +5,7 @@
   "description": "Panic Push: Cosmic Arena multiplayer Phaser game.",
   "main": "server/index.js",
   "scripts": {
+    "build:web": "node scripts/build-web-assets.mjs",
     "generate:audio": "node scripts/generate-openai-audio-assets.mjs",
     "pixelengine:animate": "node scripts/pixelengine-animate.mjs",
     "start": "node server/index.js",

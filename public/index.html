@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Panic Push: Cosmic Arena</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?v=20260411c">
   </head>
   <body>
     <main class="app-shell">
+      <div id="configBanner" class="config-banner" hidden></div>
       <section id="menuScreen" class="screen menu-screen">
         <header class="panel top-header">
           <div class="brand-lockup">
@@ -181,7 +182,8 @@
       </section>
       <p id="statusText" class="sr-only" aria-live="polite"></p>
     </main>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="/runtime-config.js"></script>
+    <script src="/vendor/socket.io/socket.io.min.js"></script>
     <script src="/vendor/phaser/phaser.min.js"></script>
     <script src="/src/audio.js"></script>
     <script src="/src/ui.js"></script>

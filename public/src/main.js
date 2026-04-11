@@ -1,5 +1,14 @@
 (function () {
-  const socket = io();
+  const configBanner = document.querySelector("#configBanner");
+  const serverUrl =
+    (window.PanicRuntime && typeof window.PanicRuntime.serverUrl === "string" && window.PanicRuntime.serverUrl.trim()) ||
+    "";
+  const isLocalOrigin = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const socket = serverUrl
+    ? io(serverUrl, { transports: ["websocket", "polling"] })
+    : isLocalOrigin
+      ? io()
+      : createMissingServerSocket();
   let game = null;
   const uiHelpers = window.PanicUI;
   const state = {
@@ -54,6 +63,10 @@
     standings: el("standingsList"),
     returnLobby: el("returnLobbyButton")
   };
+
+  if (!serverUrl && !isLocalOrigin) {
+    showConfigBanner("PANIC_SERVER_URL is missing. Set the Railway backend URL in Vercel project settings.");
+  }
 
   socket.on("connect", () => {
     setStatus("Connected.");
@@ -479,6 +492,12 @@
     if (status) status.textContent = message;
   }
 
+  function showConfigBanner(message) {
+    if (!configBanner) return;
+    configBanner.textContent = message;
+    configBanner.hidden = false;
+  }
+
   function showCopyFeedback(message, success) {
     if (!ui.copyFeedback) return;
     ui.copyFeedback.textContent = message;
@@ -530,6 +549,18 @@
     if (!isHost) return "Only the host can start the match.";
     if (roomReadyToStart) return "Start Match is ready.";
     return `Start locked. ${startReason}`;
+  }
+
+  function createMissingServerSocket() {
+    return {
+      on() {},
+      emit(...args) {
+        const reply = args[args.length - 1];
+        if (typeof reply === "function") {
+          reply({ ok: false, message: "Multiplayer server is not configured yet." });
+        }
+      }
+    };
   }
 
   function isMoveKey(key) {

@@ -8,7 +8,29 @@ const loop = require("./gameLoop");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const allowedOrigins = String(process.env.CLIENT_ORIGIN || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const allowVercelPreviewOrigins = process.env.ALLOW_VERCEL_PREVIEWS !== "false";
+const io = new Server(server, {
+  cors: {
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      try {
+        const hostname = new URL(origin).hostname;
+        if (allowVercelPreviewOrigins && hostname.endsWith(".vercel.app")) {
+          return callback(null, true);
+        }
+      } catch {
+        // Ignore parse errors and fall through to rejection.
+      }
+      return callback(new Error(`Origin not allowed: ${origin}`));
+    },
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -19,6 +41,11 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 app.use("/vendor/phaser", express.static(path.join(__dirname, "..", "node_modules", "phaser", "dist")));
+app.use("/vendor/socket.io", express.static(path.join(__dirname, "..", "node_modules", "socket.io", "client-dist")));
+
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
