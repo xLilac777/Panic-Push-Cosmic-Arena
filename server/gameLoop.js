@@ -24,17 +24,15 @@ function updateAuthoritativeState(deltaMs) {
 function resolveRoundTimeout(room) {
   const activeElapsed = Date.now() - room.match.startedAt - C.ROUND_START_DELAY_MS;
   if (activeElapsed < C.ROUND_MS + C.OVERTIME_MS) return;
+  room.match.suddenDeath = true;
+  room.match.safeRadius = C.ARENA_SUDDEN_DEATH_RADIUS;
   const now = Date.now();
-  const cx = C.WORLD_WIDTH / 2;
-  const cy = C.WORLD_HEIGHT / 2;
   const alive = Array.from(room.players.values()).filter((player) => player.alive);
-  const winner = alive.sort((a, b) => {
-    const aScore = distance(a.x, a.y, cx, cy) + Math.hypot(a.vx + a.knockbackX, a.vy + a.knockbackY) * 0.08;
-    const bScore = distance(b.x, b.y, cx, cy) + Math.hypot(b.vx + b.knockbackX, b.vy + b.knockbackY) * 0.08;
-    return aScore - bScore;
-  })[0] || null;
+  if (alive.length <= 1) return;
   for (const player of room.players.values()) {
-    if (!player.alive || (winner && player.id === winner.id)) continue;
+    if (!player.alive) continue;
+    const d = distance(player.x, player.y, C.WORLD_WIDTH / 2, C.WORLD_HEIGHT / 2);
+    if (d <= room.match.safeRadius + C.PLAYER_RADIUS) continue;
     player.alive = false;
     player.eliminatedAt = now;
     player.input = { x: 0, y: 0 };
@@ -48,7 +46,6 @@ function resolveRoundTimeout(room) {
       expiresAt: now + 520
     });
   }
-  store.endRound(room, winner);
 }
 
 function createSnapshot(room) {
@@ -57,9 +54,10 @@ function createSnapshot(room) {
   const countdownMs = room.match ? Math.max(0, C.ROUND_START_DELAY_MS - (now - room.match.startedAt)) : 0;
   const activeElapsed = room.match ? Math.max(0, now - room.match.startedAt - C.ROUND_START_DELAY_MS) : 0;
   const overtimeActive = room.match ? activeElapsed >= C.ROUND_MS : false;
+  const suddenDeathActive = room.match ? room.match.suddenDeath === true : false;
   const phaseElapsed = room.match ? Math.max(0, activeElapsed - C.ROUND_MS) : 0;
   const phaseTimeLeftMs = room.match
-    ? Math.max(0, overtimeActive ? C.OVERTIME_MS - phaseElapsed : C.ROUND_MS - activeElapsed)
+    ? Math.max(0, suddenDeathActive ? 0 : overtimeActive ? C.OVERTIME_MS - phaseElapsed : C.ROUND_MS - activeElapsed)
     : 0;
   return {
     code: room.code,
@@ -68,6 +66,7 @@ function createSnapshot(room) {
     countdownMs,
     countdownValue: countdownMs > 0 ? Math.min(3, Math.max(1, Math.ceil(countdownMs / 1000))) : 0,
     overtimeActive,
+    suddenDeathActive,
     arena: {
       width: C.WORLD_WIDTH,
       height: C.WORLD_HEIGHT,
@@ -76,7 +75,7 @@ function createSnapshot(room) {
       radius: room.match ? room.match.safeRadius : C.ARENA_RADIUS,
       startRadius: C.ARENA_RADIUS,
       endRadius: C.ARENA_END_RADIUS,
-      hazardActive: room.match ? overtimeActive : false
+      hazardActive: room.match ? (overtimeActive || suddenDeathActive) : false
     },
     timeLeftMs: phaseTimeLeftMs,
     winnerId: room.match ? room.match.winnerId : null,
@@ -182,6 +181,10 @@ function targetDistanceBias(bot, target, room) {
 
 function updateArena(room) {
   const elapsed = Math.max(0, Date.now() - room.match.startedAt - C.ROUND_START_DELAY_MS);
+  if (room.match.suddenDeath) {
+    room.match.safeRadius = C.ARENA_SUDDEN_DEATH_RADIUS;
+    return;
+  }
   const totalShrink = C.ARENA_RADIUS - C.ARENA_END_RADIUS;
   const slowShrink = totalShrink * C.ROUND_SHRINK_PORTION;
   const fastShrink = totalShrink - slowShrink;
@@ -192,7 +195,14 @@ function updateArena(room) {
   }
   const overtimeElapsed = Math.min(C.OVERTIME_MS, Math.max(0, elapsed - C.ROUND_MS));
   const progress = Math.min(1, overtimeElapsed / Math.max(1, C.OVERTIME_MS));
-  room.match.safeRadius = C.ARENA_RADIUS - slowShrink - fastShrink * progress;
+  room.match.safeRadius = Math.max(
+    C.ARENA_END_RADIUS,
+    C.ARENA_RADIUS - slowShrink - fastShrink * progress
+  );
+  if (elapsed >= C.ROUND_MS + C.OVERTIME_MS) {
+    room.match.suddenDeath = true;
+    room.match.safeRadius = C.ARENA_SUDDEN_DEATH_RADIUS;
+  }
 }
 
 function updatePlayer(player, delta, roundLive) {
@@ -253,15 +263,13 @@ function updateEliminations(room) {
   const cy = C.WORLD_HEIGHT / 2;
   for (const player of alive) {
     const d = distance(player.x, player.y, cx, cy);
-    if (d >= room.match.safeRadius + C.PLAYER_RADIUS) {
-      toEliminate.push(player);
+    if (d <= room.match.safeRadius) {
+      player.outsideSince = null;
       continue;
     }
-    if (d > room.match.safeRadius) {
-      player.outsideSince = player.outsideSince || now;
-      if (now - player.outsideSince >= C.ELIMINATION_GRACE_MS) toEliminate.push(player);
-    } else {
-      player.outsideSince = null;
+    player.outsideSince = player.outsideSince || now;
+    if (d >= room.match.safeRadius + C.PLAYER_RADIUS || now - player.outsideSince >= C.ELIMINATION_GRACE_MS) {
+      toEliminate.push(player);
     }
   }
   if (toEliminate.length >= alive.length) {

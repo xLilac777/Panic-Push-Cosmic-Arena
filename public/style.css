@@ -206,6 +206,24 @@ button:focus-visible {
   padding: 0.8rem 0.95rem;
 }
 
+.config-banner.status-info {
+  background: rgba(119, 246, 255, 0.1);
+  border-color: rgba(119, 246, 255, 0.24);
+  color: #c9f8ff;
+}
+
+.config-banner.status-success {
+  background: rgba(125, 255, 178, 0.1);
+  border-color: rgba(125, 255, 178, 0.22);
+  color: #d8ffe8;
+}
+
+.config-banner.status-error {
+  background: rgba(255, 102, 120, 0.12);
+  border-color: rgba(255, 102, 120, 0.26);
+  color: #ffd4da;
+}
+
 .app-shell:has(#lobbyScreen:not([hidden])) {
   max-width: none;
   padding: 0.8rem 1rem 1rem;
@@ -309,6 +327,14 @@ button:focus-visible {
   display: flex;
   gap: 0.9rem;
   justify-content: space-between;
+}
+
+.end-actions {
+  justify-content: center;
+}
+
+.end-actions > button {
+  min-width: 12rem;
 }
 
 .panel-note,
@@ -529,6 +555,200 @@ button:focus-visible {
   display: grid;
   gap: 0.58rem;
   grid-area: rooms;
+}
+
+.sound-widget {
+  bottom: 18px;
+  left: 18px;
+  position: fixed;
+  width: min(320px, calc(100vw - 24px));
+  z-index: 40;
+}
+
+.sound-widget-panel {
+  background: linear-gradient(180deg, rgba(8, 17, 31, 0.94), rgba(6, 13, 24, 0.96));
+  border: 1px solid rgba(119, 246, 255, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(119, 246, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  margin-bottom: 0.62rem;
+  opacity: 0;
+  padding: 0.82rem 0.86rem 0.9rem;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.98);
+  transform-origin: bottom left;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.sound-widget.open .sound-widget-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.sound-widget-header {
+  display: grid;
+  gap: 0.12rem;
+  margin-bottom: 0.7rem;
+}
+
+.sound-widget-header h2 {
+  color: #d7eff8;
+  font-size: 0.96rem;
+}
+
+.sound-widget-toggle {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(8, 17, 31, 0.92), rgba(6, 13, 24, 0.96));
+  border: 1px solid rgba(119, 246, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26), 0 0 0 1px rgba(119, 246, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: #d7eff8;
+  display: inline-flex;
+  gap: 0.65rem;
+  justify-content: flex-start;
+  min-height: 3rem;
+  padding: 0.7rem 0.9rem;
+  text-transform: uppercase;
+  width: 220px;
+}
+
+.sound-widget-toggle:hover {
+  border-color: rgba(119, 246, 255, 0.3);
+}
+
+.sound-widget-icon {
+  background-image: url('/assets/ui/icons/sound-widget-icon-v1-tight.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: inline-block;
+  filter: drop-shadow(0 0 12px rgba(119, 246, 255, 0.18));
+  height: 20px;
+  width: 20px;
+}
+
+.sound-widget-label {
+  color: #d7eff8;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+}
+
+.sound-widget-chevron {
+  border-right: 2px solid rgba(119, 246, 255, 0.8);
+  border-top: 2px solid rgba(119, 246, 255, 0.8);
+  height: 8px;
+  margin-left: auto;
+  transform: rotate(135deg);
+  transition: transform 160ms ease;
+  width: 8px;
+}
+
+.sound-widget.open .sound-widget-chevron {
+  transform: rotate(-45deg);
+}
+
+.sound-control-list {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.sound-row {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(10, 19, 33, 0.82), rgba(8, 14, 26, 0.9));
+  border: 1px solid rgba(119, 246, 255, 0.1);
+  border-radius: 14px;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 56px minmax(0, 1fr) 50px;
+  padding: 0.62rem 0.74rem;
+}
+
+.sound-row-slider {
+  grid-template-columns: 56px minmax(0, 1fr) 50px;
+}
+
+.sound-label {
+  color: #d7eff8;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sound-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 22px;
+  width: 100%;
+}
+
+.sound-slider:focus {
+  outline: none;
+}
+
+.sound-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, rgba(119, 246, 255, 0.58), rgba(119, 246, 255, 0.1));
+  border-radius: 999px;
+  height: 6px;
+}
+
+.sound-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(180deg, #bff9ff, var(--accent));
+  border: 2px solid rgba(3, 16, 23, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(119, 246, 255, 0.12);
+  height: 18px;
+  margin-top: -6px;
+  width: 18px;
+}
+
+.sound-slider::-moz-range-track {
+  background: linear-gradient(90deg, rgba(119, 246, 255, 0.58), rgba(119, 246, 255, 0.1));
+  border: 0;
+  border-radius: 999px;
+  height: 6px;
+}
+
+.sound-slider::-moz-range-thumb {
+  background: linear-gradient(180deg, #bff9ff, var(--accent));
+  border: 2px solid rgba(3, 16, 23, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(119, 246, 255, 0.12);
+  height: 18px;
+  width: 18px;
+}
+
+.sound-value {
+  color: #d7eff8;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  justify-self: end;
+}
+
+.sound-toggle-row {
+  display: grid;
+  gap: 0.52rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.72rem;
+}
+
+.sound-quick-toggle {
+  background: rgba(10, 20, 34, 0.88);
+  border-color: rgba(119, 246, 255, 0.16);
+  color: #d7eff8;
+  min-height: 2.6rem;
+  padding-inline: 0.7rem;
+}
+
+.sound-quick-toggle.active {
+  background: linear-gradient(180deg, rgba(119, 246, 255, 0.18), rgba(40, 110, 126, 0.18));
+  border-color: rgba(119, 246, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(119, 246, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .rooms-panel::after {
@@ -1648,6 +1868,7 @@ button:focus-visible {
     grid-template-areas:
       "actions"
       "rooms"
+      "sound"
       "support";
     grid-template-columns: 1fr;
   }
@@ -1728,6 +1949,15 @@ button:focus-visible {
   .game-hud,
   .support-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sound-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .sound-value {
+    justify-self: start;
   }
 
   .top-header::after {

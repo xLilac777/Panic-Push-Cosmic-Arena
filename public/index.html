@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Panic Push: Cosmic Arena</title>
-    <link rel="stylesheet" href="/style.css?v=20260411c">
+    <link rel="stylesheet" href="/style.css?v=20260412a">
   </head>
   <body>
     <main class="app-shell">
@@ -177,17 +177,61 @@
           <ol id="standingsList" class="standings-list"></ol>
           <div class="end-actions">
             <button id="returnLobbyButton" type="button">Return to Lobby</button>
+            <button id="leaveEndRoomButton" type="button" class="danger-button">Leave Room</button>
           </div>
         </div>
       </section>
       <p id="statusText" class="sr-only" aria-live="polite"></p>
+
+      <!-- Floating sound settings widget -->
+      <div id="soundWidget" class="sound-widget">
+        <div id="soundPanel" class="sound-widget-panel" hidden>
+          <div class="sound-widget-header">
+            <p class="eyebrow">Settings</p>
+            <h2>Sound</h2>
+          </div>
+          <div class="sound-control-list">
+            <div class="sound-row sound-row-slider">
+              <label class="sound-label" for="masterVolumeInput">Master</label>
+              <input id="masterVolumeInput" class="sound-slider" type="range" min="0" max="100" value="100" aria-label="Master volume">
+              <span id="masterVolumeValue" class="sound-value">100%</span>
+            </div>
+            <div class="sound-row sound-row-slider">
+              <label class="sound-label" for="musicVolumeInput">Music</label>
+              <input id="musicVolumeInput" class="sound-slider" type="range" min="0" max="100" value="100" aria-label="Music volume">
+              <span id="musicVolumeValue" class="sound-value">100%</span>
+            </div>
+            <div class="sound-row sound-row-slider">
+              <label class="sound-label" for="sfxVolumeInput">SFX</label>
+              <input id="sfxVolumeInput" class="sound-slider" type="range" min="0" max="100" value="100" aria-label="Sound effects volume">
+              <span id="sfxVolumeValue" class="sound-value">100%</span>
+            </div>
+            <div class="sound-row sound-row-slider">
+              <label class="sound-label" for="uiVolumeInput">UI</label>
+              <input id="uiVolumeInput" class="sound-slider" type="range" min="0" max="100" value="100" aria-label="UI sound volume">
+              <span id="uiVolumeValue" class="sound-value">100%</span>
+            </div>
+          </div>
+          <div class="sound-toggle-row">
+            <button id="muteAllButton" type="button" class="sound-quick-toggle button-secondary">Mute All</button>
+            <button id="musicMuteButton" type="button" class="sound-quick-toggle button-secondary">Music On</button>
+            <button id="sfxMuteButton" type="button" class="sound-quick-toggle button-secondary">SFX On</button>
+          </div>
+        </div>
+        <button id="soundWidgetToggle" type="button" class="sound-widget-toggle" aria-expanded="false" aria-controls="soundPanel">
+          <span class="sound-widget-icon" aria-hidden="true"></span>
+          <span class="sound-widget-label">Sound</span>
+          <span class="sound-widget-chevron" aria-hidden="true"></span>
+        </button>
+      </div>
     </main>
-    <script src="/runtime-config.js"></script>
-    <script src="/vendor/socket.io/socket.io.min.js"></script>
-    <script src="/vendor/phaser/phaser.min.js"></script>
-    <script src="/src/audio.js"></script>
-    <script src="/src/ui.js"></script>
-    <script src="/src/game.js"></script>
-    <script src="/src/main.js"></script>
+    <script src="/runtime-config.js?v=20260412a"></script>
+    <script src="/vendor/socket.io/socket.io.min.js?v=20260412a"></script>
+    <script src="/vendor/phaser/phaser.min.js?v=20260412a"></script>
+    <script src="/src/audio.js?v=20260412a"></script>
+    <script src="/src/ui.js?v=20260412a"></script>
+    <script src="/src/game.js?v=20260412a"></script>
+    <script src="/src/main.js?v=20260412a"></script>
+    <script async src="https://vibejam.cc/2026/widget.js"></script>
   </body>
 </html>

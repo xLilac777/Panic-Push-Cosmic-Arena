@@ -61,23 +61,29 @@
     status: el("statusHintText"),
     winner: el("winnerText"),
     standings: el("standingsList"),
-    returnLobby: el("returnLobbyButton")
+    returnLobby: el("returnLobbyButton"),
+    leaveEndRoom: el("leaveEndRoomButton")
   };
 
+  setStatus("Connecting to local server...", "info");
+
   if (!serverUrl && !isLocalOrigin) {
-    showConfigBanner("PANIC_SERVER_URL is missing. Set the Railway backend URL in Vercel project settings.");
+    showConfigBanner("PANIC_SERVER_URL is missing. Set the Railway backend URL in Vercel project settings.", "error");
   }
 
   socket.on("connect", () => {
-    setStatus("Connected.");
+    hideConfigBanner();
     socket.emit("room:list:request");
+  });
+  socket.on("connect_error", (error) => {
+    setStatus(`Connection failed: ${error.message}`, "error");
   });
   socket.on("disconnect", () => {
     if (window.PanicAudio) {
       window.PanicAudio.play("music-stop");
       window.PanicAudio.play("lobby-music-stop");
     }
-    setStatus("Disconnected.");
+    setStatus("Disconnected from server.", "error");
     resetClientState();
     show("menu");
   });
@@ -94,9 +100,9 @@
       return;
     }
     renderLobby();
+    show("lobby");
   });
   socket.on("match:start", (snapshot) => {
-    setStatus("Round starts now.");
     queueSnapshot(snapshot);
     state.winnerPlayed = false;
     prepareGameScreen();
@@ -155,6 +161,14 @@
     leaveCurrentRoom();
   });
   ui.returnLobby.addEventListener("click", () => {
+    const isHost = state.room && state.room.hostId === state.playerId;
+    if (isHost) {
+      action("room:returnToLobby", {});
+      return;
+    }
+    leaveCurrentRoom();
+  });
+  ui.leaveEndRoom.addEventListener("click", () => {
     leaveCurrentRoom();
   });
   ui.roomCode.addEventListener("input", () => {
@@ -207,7 +221,20 @@
   }
 
   function emitWithReply(eventName, payload) {
-    return new Promise((resolve) => socket.emit(eventName, payload, (reply) => resolve(reply || { ok: false })));
+    return new Promise((resolve) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve({ ok: false, message: "Server did not respond. Check the local server connection." });
+      }, 4000);
+      socket.emit(eventName, payload, (reply) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(reply || { ok: false });
+      });
+    });
   }
 
   function renderLobby() {
@@ -363,6 +390,7 @@
     ui.dash.textContent = self && self.dashCooldownLeftMs > 0 ? `${(self.dashCooldownLeftMs / 1000).toFixed(1)}s` : "Ready";
     ui.push.textContent = self && self.pushCooldownLeftMs > 0 ? `${(self.pushCooldownLeftMs / 1000).toFixed(1)}s` : "Ready";
     if (self && !self.alive) ui.status.textContent = "Out";
+    else if (snapshot.suddenDeathActive) ui.status.textContent = "Sudden Death";
     else if (!snapshot.roundLive && snapshot.countdownValue > 0) ui.status.textContent = `Start ${snapshot.countdownValue}`;
     else if (snapshot.overtimeActive) ui.status.textContent = "Final Shrink";
     else if (snapshot.arena.hazardActive) ui.status.textContent = "Shrink";
@@ -372,10 +400,14 @@
   function renderEnd(snapshot) {
     const winner = snapshot.players.find((player) => player.id === snapshot.winnerId);
     const self = snapshot.players.find((player) => player.id === state.playerId);
+    const isHost = state.room && state.room.hostId === state.playerId;
     if (self && snapshot.winnerId === self.id) ui.winner.textContent = "You Win";
     else if (self) ui.winner.textContent = "You Lose";
     else ui.winner.textContent = winner ? `${winner.nickname} wins!` : "No winner";
-    ui.returnLobby.disabled = false;
+    ui.returnLobby.disabled = !isHost;
+    ui.returnLobby.textContent = "Return to Lobby";
+    ui.returnLobby.title = isHost ? "Bring everyone in this room back to the lobby." : "Only the host can return the room to the lobby.";
+    ui.leaveEndRoom.disabled = false;
     ui.standings.innerHTML = "";
     for (const entry of snapshot.standings || []) {
       const item = document.createElement("li");
@@ -484,18 +516,25 @@
     socket.emit("room:leave");
     resetClientState();
     show("menu");
-    setStatus("Returned to lobby.");
+    hideConfigBanner();
   }
 
-  function setStatus(message) {
+  function setStatus(message, tone = "info") {
     const status = document.querySelector("#statusText");
     if (status) status.textContent = message;
+    showConfigBanner(message, tone);
   }
 
-  function showConfigBanner(message) {
+  function showConfigBanner(message, tone = "info") {
     if (!configBanner) return;
     configBanner.textContent = message;
+    configBanner.className = `config-banner status-${tone}`;
     configBanner.hidden = false;
+  }
+
+  function hideConfigBanner() {
+    if (!configBanner) return;
+    configBanner.hidden = true;
   }
 
   function showCopyFeedback(message, success) {
@@ -550,6 +589,7 @@
     if (roomReadyToStart) return "Start Match is ready.";
     return `Start locked. ${startReason}`;
   }
+
 
   function createMissingServerSocket() {
     return {

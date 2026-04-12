@@ -284,7 +284,11 @@
         const nextTexture = this.getPlayerTextureKey(player);
         if (nextTexture && view.body.texture.key !== nextTexture) view.body.setTexture(nextTexture);
       }
-      if (view.body.setFrame) {
+      const supportsAnimationFrames =
+        Boolean(view.body.texture) &&
+        typeof view.body.texture.getFrameNames === "function" &&
+        view.body.texture.getFrameNames().length > 1;
+      if (view.body.setFrame && supportsAnimationFrames) {
         if (player.dashing) view.body.setFrame(2);
         else if (Math.hypot(player.vx, player.vy) > 20) view.body.setFrame(1);
         else view.body.setFrame(0);

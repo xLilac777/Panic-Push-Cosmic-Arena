@@ -20,6 +20,9 @@ const io = new Server(server, {
       if (allowedOrigins.includes(origin)) return callback(null, true);
       try {
         const hostname = new URL(origin).hostname;
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+          return callback(null, true);
+        }
         if (allowVercelPreviewOrigins && hostname.endsWith(".vercel.app")) {
           return callback(null, true);
         }
@@ -112,6 +115,15 @@ io.on("connection", (socket) => {
     io.to(room.code).emit("match:start", loop.createSnapshot(room));
     broadcastRoomList();
     return { room: rooms.serializeRoom(room) };
+  }));
+
+  socket.on("room:returnToLobby", (_payload, reply) => replyWith(reply, () => {
+    const room = rooms.returnRoomToLobby(socket.id);
+    if (room) {
+      broadcastRoom(room);
+    }
+    broadcastRoomList();
+    return { room: room ? rooms.serializeRoom(room) : null };
   }));
 
   socket.on("input:update", (input) => rooms.updateInput(socket.id, input));

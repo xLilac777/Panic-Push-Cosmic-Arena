@@ -112,7 +112,8 @@ function startMatch(socketId) {
     endedAt: null,
     endSent: false,
     tick: 0,
-    safeRadius: C.ARENA_RADIUS
+    safeRadius: C.ARENA_RADIUS,
+    suddenDeath: false
   };
   const players = Array.from(room.players.values());
   players.forEach((player, index) => {
@@ -138,6 +139,52 @@ function startMatch(socketId) {
     player.botThinkAt = 0;
     player.input = { x: 0, y: 0 };
   });
+  return room;
+}
+
+function returnRoomToLobby(socketId) {
+  const room = getRoomBySocket(socketId);
+  if (!room) throw new Error("Create or join a room first.");
+  if (room.hostId !== socketId) throw new Error("Only the host can return the room to the lobby.");
+  if (room.status !== "ended") throw new Error("The room can only return to the lobby after a match ends.");
+
+  room.status = "lobby";
+  room.effects = [];
+  room.match = null;
+
+  for (const [playerId, player] of room.players) {
+    if (!player.isBot && player.connected === false) {
+      room.players.delete(playerId);
+      continue;
+    }
+    player.ready = player.isBot;
+    player.alive = false;
+    player.x = C.WORLD_WIDTH / 2;
+    player.y = C.WORLD_HEIGHT / 2;
+    player.vx = 0;
+    player.vy = 0;
+    player.knockbackX = 0;
+    player.knockbackY = 0;
+    player.outsideSince = null;
+    player.eliminatedAt = null;
+    player.dashUntil = 0;
+    player.pushCooldownUntil = 0;
+    player.dashCooldownUntil = 0;
+    player.hitImmuneUntil = 0;
+    player.hitFlashUntil = 0;
+    player.input = { x: 0, y: 0 };
+  }
+
+  if (!room.players.has(room.hostId) || room.players.get(room.hostId)?.connected === false) {
+    const nextHost = Array.from(room.players.values()).find((player) => !player.isBot && player.connected !== false);
+    room.hostId = nextHost ? nextHost.id : null;
+  }
+
+  if (!room.hostId || connectedHumanPlayers(room).length === 0) {
+    rooms.delete(room.code);
+    return null;
+  }
+
   return room;
 }
 
@@ -374,6 +421,7 @@ module.exports = {
   removeBot,
   fillBots,
   startMatch,
+  returnRoomToLobby,
   endRound,
   maybeEndRound,
   updateInput,
